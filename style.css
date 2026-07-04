@@ -1,344 +1,136 @@
-// --- Firebase Config ---
-var FIREBASE_DB_URL = 'https://gender-guessing-default-rtdb.firebaseio.com';
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-// --- Encode/Decode ---
-function encodeAnswer(answer) {
-  return btoa(answer + '|genderreveal');
+body {
+  font-family: 'Poppins', sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+  padding: 20px;
 }
 
-function decodeAnswer(hash) {
-  try {
-    var decoded = atob(hash);
-    if (decoded.endsWith('|genderreveal')) return decoded.replace('|genderreveal', '');
-  } catch (e) {}
-  return null;
+.card {
+  background: white;
+  border-radius: 28px;
+  padding: 48px 36px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+  text-align: center;
+  max-width: 440px;
+  width: 100%;
+  position: relative;
+  border: 2px solid rgba(0,0,0,0.04);
 }
 
-// --- Test & Stats Mode ---
-var urlParams = new URLSearchParams(window.location.search);
-var isTestMode = urlParams.has('test');
-var isStatsMode = urlParams.has('stats');
+h1 {
+  font-family: 'Dancing Script', cursive;
+  font-size: 2.4rem; color: #333; margin-bottom: 8px;
+}
+.subtitle { font-size: 0.95rem; color: #888; margin-bottom: 32px; }
 
-// --- Page Routing ---
-var hash = window.location.hash.substring(1);
-var hiddenAnswer = decodeAnswer(hash);
+.buttons { display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+.btn {
+  padding: 16px 36px; font-size: 1.1rem; font-weight: 600;
+  border: none; border-radius: 14px; cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Poppins', sans-serif; position: relative; z-index: 1;
+  outline: none;
+}
+.btn-boy { background: #60a5fa; color: white; }
+.btn-boy:hover:not(:disabled) { background: #3b82f6; transform: scale(1.06); box-shadow: 0 8px 24px rgba(59,130,246,0.3); }
+.btn-girl { background: #f472b6; color: white; }
+.btn-girl:hover:not(:disabled) { background: #ec4899; transform: scale(1.06); box-shadow: 0 8px 24px rgba(236,72,153,0.3); }
+.btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.btn.selected { transform: scale(1.1); box-shadow: 0 6px 24px rgba(0,0,0,0.15); outline: none; }
+.btn:focus { outline: none; }
 
-if (isStatsMode) {
-  showStatsPage();
-} else if (hiddenAnswer) {
-  document.getElementById('guesser-page').classList.add('active');
-  createParticles();
-} else {
-  document.getElementById('creator-page').classList.add('active');
+.timer {
+  font-size: 4rem; font-weight: 700; color: #333; margin: 20px 0; display: none;
+  animation: heartbeat 1s ease-in-out infinite;
+}
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.15); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.1); }
+  60% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+.message { font-size: 1rem; color: #666; min-height: 24px; margin-bottom: 8px; }
+
+.reveal {
+  font-size: 2.4rem; font-weight: 700; display: none;
+  animation: pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.reveal .answer-text {
+  display: inline-block;
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.reveal .answer-text.girl-answer {
+  background: linear-gradient(135deg, #ec4899, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+@keyframes pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-// --- Firebase Helpers ---
-async function recordVote(guess) {
-  if (isTestMode) return;
-  var key = guess.toLowerCase();
-  try {
-    var res = await fetch(FIREBASE_DB_URL + '/votes/' + key + '.json');
-    var current = await res.json() || 0;
-    await fetch(FIREBASE_DB_URL + '/votes/' + key + '.json', {
-      method: 'PUT',
-      body: JSON.stringify(current + 1)
-    });
-  } catch (e) {
-    console.log('Vote recording failed:', e);
-  }
+.share-section { margin-top: 28px; display: none; }
+.share-section h2 { font-size: 1rem; color: #555; margin-bottom: 16px; font-weight: 600; }
+.link-box { display: flex; gap: 8px; margin-bottom: 20px; align-items: stretch; }
+.link-input {
+  flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px;
+  font-size: 0.85rem; font-family: 'Poppins', sans-serif; color: #333;
+  outline: none; transition: border-color 0.2s;
+}
+.link-input:focus { border-color: #f472b6; }
+.btn-copy {
+  padding: 12px 18px; background: #333; color: white; border: none;
+  border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 0.85rem;
+  font-family: 'Poppins', sans-serif; transition: all 0.2s; white-space: nowrap;
+}
+.btn-copy:hover { background: #555; }
+.btn-copy.copied { background: #22c55e; }
+
+.social-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.social-btn {
+  padding: 10px 16px; border: none; border-radius: 10px; cursor: pointer;
+  font-size: 0.8rem; font-weight: 600; color: white; font-family: 'Poppins', sans-serif;
+  transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.social-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.social-btn.whatsapp { background: #25D366; }
+.social-btn.facebook { background: #1877F2; }
+.social-btn.x { background: #000; }
+.social-btn.instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+.social-btn svg { width: 16px; height: 16px; fill: white; }
+
+.confetti-container {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 999; overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
 }
 
-async function getVotes() {
-  try {
-    var res = await fetch(FIREBASE_DB_URL + '/votes.json');
-    var data = await res.json();
-    return { boy: data && data.boy ? data.boy : 0, girl: data && data.girl ? data.girl : 0 };
-  } catch (e) {
-    return { boy: 0, girl: 0 };
-  }
+.particles {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 0; overflow: hidden;
+}
+.particle {
+  position: absolute; border-radius: 50%; opacity: 0.3;
+  animation: float linear infinite;
+}
+@keyframes float {
+  0% { transform: translateY(100vh) rotate(0deg); }
+  100% { transform: translateY(-20vh) rotate(360deg); }
 }
 
-// --- Stats Page (secret) ---
-async function showStatsPage() {
-  var card = document.querySelector('.card');
-  var votes = await getVotes();
-  var total = votes.boy + votes.girl;
-  var boyPct = total ? (votes.boy / total * 100) : 50;
-  var girlPct = total ? (votes.girl / total * 100) : 50;
-
-  card.innerHTML =
-    '<h1 style="margin-bottom: 24px;">Vote Stats</h1>' +
-    '<p class="subtitle">Secret stats page \u2014 only you know this exists!</p>' +
-    '<div style="margin: 24px 0;">' +
-      '<div style="display: flex; justify-content: space-between; margin-bottom: 12px;">' +
-        '<span style="font-weight: 600; color: #3b82f6;">Boy: ' + votes.boy + '</span>' +
-        '<span style="font-weight: 600; color: #ec4899;">Girl: ' + votes.girl + '</span>' +
-      '</div>' +
-      '<div style="height: 32px; background: #e5e7eb; border-radius: 16px; overflow: hidden; display: flex;">' +
-        '<div style="width: ' + boyPct + '%; background: #60a5fa; transition: width 0.5s;"></div>' +
-        '<div style="width: ' + girlPct + '%; background: #f472b6; transition: width 0.5s;"></div>' +
-      '</div>' +
-      '<p style="margin-top: 12px; color: #888; font-size: 0.9rem;">Total guesses: ' + total + '</p>' +
-    '</div>' +
-    '<div style="margin-top: 24px;">' +
-      '<button class="btn" onclick="resetVotes()" style="background: #ef4444; color: white; padding: 12px 24px; font-size: 0.9rem;">Reset All Votes</button>' +
-    '</div>' +
-    '<p class="creator-note" style="margin-top: 16px;">Access this page anytime at ?stats</p>';
-}
-
-async function resetVotes() {
-  if (confirm('Are you sure? This will reset all vote counts to 0.')) {
-    await fetch(FIREBASE_DB_URL + '/votes.json', {
-      method: 'PUT',
-      body: JSON.stringify({ boy: 0, girl: 0 })
-    });
-    showStatsPage();
-  }
-}
-
-// --- Floating Particles ---
-function createParticles() {
-  var container = document.getElementById('particles');
-  var colors = ['#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#34d399'];
-  for (var i = 0; i < 20; i++) {
-    var p = document.createElement('div');
-    p.className = 'particle';
-    p.style.left = Math.random() * 100 + '%';
-    p.style.width = (4 + Math.random() * 8) + 'px';
-    p.style.height = p.style.width;
-    p.style.background = colors[Math.floor(Math.random() * colors.length)];
-    p.style.animationDuration = (8 + Math.random() * 12) + 's';
-    p.style.animationDelay = Math.random() * 10 + 's';
-    container.appendChild(p);
-  }
-}
-
-// --- CREATOR MODE ---
-var generatedLink = '';
-
-function createReveal(gender) {
-  var boys = document.querySelector('#creator-page .btn-boy');
-  var girls = document.querySelector('#creator-page .btn-girl');
-  if (gender === 'Boy') { boys.classList.add('selected'); girls.disabled = true; }
-  else { girls.classList.add('selected'); boys.disabled = true; }
-
-  var encoded = encodeAnswer(gender);
-  var baseUrl = window.location.href.split('?')[0].split('#')[0];
-  generatedLink = baseUrl + '#' + encoded;
-
-  document.getElementById('share-link').value = generatedLink;
-  document.getElementById('share-section').style.display = 'block';
-}
-
-function copyLink() {
-  navigator.clipboard.writeText(generatedLink).then(function() {
-    var btn = document.getElementById('copy-btn');
-    btn.textContent = 'Copied!';
-    btn.classList.add('copied');
-    setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-  });
-}
-
-var shareText = "Can you guess Baby Desai\'s gender? Make your prediction here:";
-
-function shareWhatsApp() {
-  window.open('https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + generatedLink), '_blank');
-}
-
-function shareFacebook() {
-  window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(generatedLink) + '&quote=' + encodeURIComponent(shareText), '_blank');
-}
-
-function shareX() {
-  window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(generatedLink), '_blank');
-}
-
-function shareInstagram() {
-  navigator.clipboard.writeText(generatedLink).then(function() {
-    alert('Link copied! Paste it in your Instagram story or DM.');
-  });
-}
-
-// --- GUESSER MODE ---
-function makeGuess(choice) {
-  var boyBtn = document.getElementById('btn-boy');
-  var girlBtn = document.getElementById('btn-girl');
-  if (choice === 'Boy') { boyBtn.classList.add('selected'); girlBtn.disabled = true; }
-  else { girlBtn.classList.add('selected'); boyBtn.disabled = true; }
-  boyBtn.onclick = null;
-  girlBtn.onclick = null;
-
-  recordVote(choice);
-
-  document.getElementById('message').textContent = 'You picked ' + choice + '! Revealing in...';
-  document.getElementById('timer').style.display = 'block';
-
-  launchPreRevealConfetti();
-
-  var seconds = 5;
-  document.getElementById('timer').textContent = seconds;
-
-  var countdown = setInterval(async function() {
-    seconds--;
-    document.getElementById('timer').textContent = seconds;
-    if (seconds <= 0) {
-      clearInterval(countdown);
-      document.getElementById('timer').style.display = 'none';
-      document.getElementById('message').style.display = 'none';
-
-      var answer = hiddenAnswer;
-      var isCorrect = choice === answer;
-      var answerClass = answer === 'Boy' ? '' : 'girl-answer';
-
-      document.getElementById('guesser-emoji').textContent = answer === 'Boy' ? '\uD83D\uDC66' : '\uD83D\uDC67';
-
-      var votes = await getVotes();
-      var sameGuessCount = choice.toLowerCase() === 'boy' ? votes.boy : votes.girl;
-      var othersCount = Math.max(0, sameGuessCount - 1);
-
-      var funMessage = '';
-      if (isCorrect) {
-        if (othersCount === 0) funMessage = "You are the first to crack it! \uD83C\uDFC6";
-        else funMessage = "Great minds think alike \u2014 " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " got it too! \uD83C\uDF89";
-      } else {
-        if (othersCount === 0) funMessage = "First one to get tricked \u2014 brave pioneer! \uD83D\uDE04";
-        else funMessage = "Don\'t worry, " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " fell for it too! \uD83D\uDE04";
-      }
-
-      document.getElementById('reveal').style.display = 'block';
-      document.getElementById('reveal').innerHTML =
-        '<span class="answer-text ' + answerClass + '">It\'s a ' + answer + '!</span><br>' +
-        '<span style="font-size:0.9rem;color:#666;margin-top:14px;display:block;font-weight:400;">' + funMessage + '</span>';
-
-      launchRevealConfetti(answer === 'Boy' ? '#3b82f6' : '#ec4899');
-    }
-  }, 1000);
-}
-
-// --- PRE-REVEAL CONFETTI (equal blue + pink, gentle firecracker) ---
-function launchPreRevealConfetti() {
-  var cContainer = document.getElementById('confetti');
-  var blueShades = ['#60a5fa', '#3b82f6', '#93c5fd'];
-  var pinkShades = ['#f472b6', '#ec4899', '#f9a8d4'];
-
-  var cx = window.innerWidth / 2;
-  var cy = window.innerHeight / 2;
-
-  for (var i = 0; i < 40; i++) {
-    var isBlue = i % 2 === 0;
-    var piece = document.createElement('div');
-    piece.className = 'confetti-piece';
-    var size = 5 + Math.random() * 8;
-    var shades = isBlue ? blueShades : pinkShades;
-    piece.style.background = shades[Math.floor(Math.random() * shades.length)];
-    piece.style.width = size + 'px';
-    piece.style.height = size + 'px';
-    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-    piece.style.left = cx + 'px';
-    piece.style.top = cy + 'px';
-
-    var angle = Math.random() * 360;
-    var distance = 150 + Math.random() * 250;
-    var tx = Math.cos(angle * Math.PI / 180) * distance;
-    var ty = Math.sin(angle * Math.PI / 180) * distance;
-    var duration = 1.5 + Math.random() * 2;
-    var rotation = 360 + Math.random() * 360;
-
-    piece.animate([
-      { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
-      { transform: 'translate(' + tx + 'px, ' + ty + 'px) rotate(' + rotation + 'deg) scale(0.3)', opacity: 0 }
-    ], {
-      duration: duration * 1000,
-      easing: 'cubic-bezier(0, 0.5, 0.5, 1)',
-      delay: Math.random() * 2000,
-      fill: 'forwards'
-    });
-
-    cContainer.appendChild(piece);
-  }
-
-  setTimeout(function() { cContainer.innerHTML = ''; }, 5000);
-}
-
-// --- REVEAL CONFETTI (firecracker burst from behind card) ---
-function launchRevealConfetti(accentColor) {
-  var cContainer = document.getElementById('confetti');
-  cContainer.innerHTML = '';
-
-  var isBlue = accentColor === '#3b82f6';
-  var mainColors = isBlue
-    ? ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb']
-    : ['#ec4899', '#f472b6', '#f9a8d4', '#fbcfe8', '#db2777'];
-  var extraColors = ['#fbbf24', '#a78bfa', '#34d399'];
-  var allColors = mainColors.concat(mainColors).concat(extraColors);
-
-  var cx = window.innerWidth / 2;
-  var cy = window.innerHeight / 2;
-
-  // First burst - big explosion
-  for (var i = 0; i < 80; i++) {
-    var piece = document.createElement('div');
-    piece.className = 'confetti-piece';
-    var size = 6 + Math.random() * 12;
-    piece.style.background = allColors[Math.floor(Math.random() * allColors.length)];
-    piece.style.width = size + 'px';
-    piece.style.height = Math.random() > 0.3 ? size + 'px' : (size * 0.4) + 'px';
-    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-    piece.style.left = cx + 'px';
-    piece.style.top = cy + 'px';
-
-    var angle = Math.random() * 360;
-    var distance = 200 + Math.random() * 400;
-    var tx = Math.cos(angle * Math.PI / 180) * distance;
-    var ty = Math.sin(angle * Math.PI / 180) * distance + (Math.random() * 100);
-    var duration = 2 + Math.random() * 1.5;
-    var rotation = 720 + Math.random() * 360;
-
-    piece.animate([
-      { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
-      { transform: 'translate(' + tx + 'px, ' + ty + 'px) rotate(' + rotation + 'deg) scale(0.2)', opacity: 0 }
-    ], {
-      duration: duration * 1000,
-      easing: 'cubic-bezier(0.15, 0.8, 0.3, 1)',
-      delay: Math.random() * 300,
-      fill: 'forwards'
-    });
-
-    cContainer.appendChild(piece);
-  }
-
-  // Second burst - delayed smaller pop
-  setTimeout(function() {
-    for (var i = 0; i < 50; i++) {
-      var piece = document.createElement('div');
-      piece.className = 'confetti-piece';
-      var size = 4 + Math.random() * 8;
-      piece.style.background = allColors[Math.floor(Math.random() * allColors.length)];
-      piece.style.width = size + 'px';
-      piece.style.height = size + 'px';
-      piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-      piece.style.left = cx + 'px';
-      piece.style.top = cy + 'px';
-
-      var angle = Math.random() * 360;
-      var distance = 100 + Math.random() * 300;
-      var tx = Math.cos(angle * Math.PI / 180) * distance;
-      var ty = Math.sin(angle * Math.PI / 180) * distance + 50;
-      var duration = 1.5 + Math.random() * 1.5;
-      var rotation = 360 + Math.random() * 360;
-
-      piece.animate([
-        { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
-        { transform: 'translate(' + tx + 'px, ' + ty + 'px) rotate(' + rotation + 'deg) scale(0.1)', opacity: 0 }
-      ], {
-        duration: duration * 1000,
-        easing: 'cubic-bezier(0.15, 0.8, 0.3, 1)',
-        fill: 'forwards'
-      });
-
-      cContainer.appendChild(piece);
-    }
-  }, 500);
-
-  setTimeout(function() { cContainer.innerHTML = ''; }, 5000);
-}
+.creator-note { font-size: 0.85rem; color: #aaa; margin-top: 12px; font-style: italic; }
+.page { display: none; }
+.page.active { display: block; }
+.guesser-emoji { font-size: 3rem; margin-bottom: 12px; }
