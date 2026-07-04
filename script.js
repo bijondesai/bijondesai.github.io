@@ -1,5 +1,5 @@
 // --- Firebase Config ---
-const FIREBASE_DB_URL = 'https://gender-guessing-default-rtdb.firebaseio.com';
+var FIREBASE_DB_URL = 'https://gender-guessing-default-rtdb.firebaseio.com';
 
 // --- Encode/Decode ---
 function encodeAnswer(answer) {
@@ -8,20 +8,20 @@ function encodeAnswer(answer) {
 
 function decodeAnswer(hash) {
   try {
-    const decoded = atob(hash);
+    var decoded = atob(hash);
     if (decoded.endsWith('|genderreveal')) return decoded.replace('|genderreveal', '');
   } catch (e) {}
   return null;
 }
 
 // --- Test & Stats Mode ---
-const urlParams = new URLSearchParams(window.location.search);
-const isTestMode = urlParams.has('test');
-const isStatsMode = urlParams.has('stats');
+var urlParams = new URLSearchParams(window.location.search);
+var isTestMode = urlParams.has('test');
+var isStatsMode = urlParams.has('stats');
 
 // --- Page Routing ---
-const hash = window.location.hash.substring(1);
-const hiddenAnswer = decodeAnswer(hash);
+var hash = window.location.hash.substring(1);
+var hiddenAnswer = decodeAnswer(hash);
 
 if (isStatsMode) {
   showStatsPage();
@@ -35,10 +35,10 @@ if (isStatsMode) {
 // --- Firebase Helpers ---
 async function recordVote(guess) {
   if (isTestMode) return;
-  const key = guess.toLowerCase();
+  var key = guess.toLowerCase();
   try {
-    const res = await fetch(FIREBASE_DB_URL + '/votes/' + key + '.json');
-    const current = await res.json() || 0;
+    var res = await fetch(FIREBASE_DB_URL + '/votes/' + key + '.json');
+    var current = await res.json() || 0;
     await fetch(FIREBASE_DB_URL + '/votes/' + key + '.json', {
       method: 'PUT',
       body: JSON.stringify(current + 1)
@@ -50,8 +50,8 @@ async function recordVote(guess) {
 
 async function getVotes() {
   try {
-    const res = await fetch(FIREBASE_DB_URL + '/votes.json');
-    const data = await res.json();
+    var res = await fetch(FIREBASE_DB_URL + '/votes.json');
+    var data = await res.json();
     return { boy: data && data.boy ? data.boy : 0, girl: data && data.girl ? data.girl : 0 };
   } catch (e) {
     return { boy: 0, girl: 0 };
@@ -68,7 +68,7 @@ async function showStatsPage() {
 
   card.innerHTML =
     '<h1 style="margin-bottom: 24px;">Vote Stats</h1>' +
-    '<p class="subtitle">Secret stats page — only you know this exists!</p>' +
+    '<p class="subtitle">Secret stats page \u2014 only you know this exists!</p>' +
     '<div style="margin: 24px 0;">' +
       '<div style="display: flex; justify-content: space-between; margin-bottom: 12px;">' +
         '<span style="font-weight: 600; color: #3b82f6;">Boy: ' + votes.boy + '</span>' +
@@ -139,7 +139,7 @@ function copyLink() {
   });
 }
 
-var shareText = "Can you guess Baby Desai's gender? Make your prediction here:";
+var shareText = "Can you guess Baby Desai\'s gender? Make your prediction here:";
 
 function shareWhatsApp() {
   window.open('https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + generatedLink), '_blank');
@@ -190,7 +190,7 @@ function makeGuess(choice) {
       var isCorrect = choice === answer;
       var answerClass = answer === 'Boy' ? '' : 'girl-answer';
 
-      document.getElementById('guesser-emoji').textContent = answer === 'Boy' ? '👦' : '👧';
+      document.getElementById('guesser-emoji').textContent = answer === 'Boy' ? '\uD83D\uDC66' : '\uD83D\uDC67';
 
       var votes = await getVotes();
       var sameGuessCount = choice.toLowerCase() === 'boy' ? votes.boy : votes.girl;
@@ -198,11 +198,11 @@ function makeGuess(choice) {
 
       var funMessage = '';
       if (isCorrect) {
-        if (othersCount === 0) funMessage = "You're the first to crack it! 🏆";
-        else funMessage = "Great minds think alike — " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " got it too! 🎉";
+        if (othersCount === 0) funMessage = "You are the first to crack it! \uD83C\uDFC6";
+        else funMessage = "Great minds think alike \u2014 " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " got it too! \uD83C\uDF89";
       } else {
-        if (othersCount === 0) funMessage = "First one to get tricked — brave pioneer! 😄";
-        else funMessage = "Don't worry, " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " fell for it too! 😄";
+        if (othersCount === 0) funMessage = "First one to get tricked \u2014 brave pioneer! \uD83D\uDE04";
+        else funMessage = "Don\'t worry, " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " fell for it too! \uD83D\uDE04";
       }
 
       document.getElementById('reveal').style.display = 'block';
@@ -215,40 +215,52 @@ function makeGuess(choice) {
   }, 1000);
 }
 
-// --- PRE-REVEAL CONFETTI (equal blue + pink) ---
+// --- PRE-REVEAL CONFETTI (equal blue + pink, gentle firecracker) ---
 function launchPreRevealConfetti() {
   var cContainer = document.getElementById('confetti');
   var blueShades = ['#60a5fa', '#3b82f6', '#93c5fd'];
   var pinkShades = ['#f472b6', '#ec4899', '#f9a8d4'];
 
-  for (var i = 0; i < 30; i++) {
-    var blue = document.createElement('div');
-    blue.className = 'confetti-piece';
-    var size1 = 5 + Math.random() * 8;
-    blue.style.left = Math.random() * 100 + '%';
-    blue.style.background = blueShades[Math.floor(Math.random() * blueShades.length)];
-    blue.style.width = size1 + 'px';
-    blue.style.height = size1 + 'px';
-    blue.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-    blue.style.animationDuration = (3 + Math.random() * 3) + 's';
-    blue.style.animationDelay = Math.random() * 4 + 's';
-    cContainer.appendChild(blue);
+  var cx = window.innerWidth / 2;
+  var cy = window.innerHeight / 2;
 
-    var pink = document.createElement('div');
-    pink.className = 'confetti-piece';
-    var size2 = 5 + Math.random() * 8;
-    pink.style.left = Math.random() * 100 + '%';
-    pink.style.background = pinkShades[Math.floor(Math.random() * pinkShades.length)];
-    pink.style.width = size2 + 'px';
-    pink.style.height = size2 + 'px';
-    pink.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-    pink.style.animationDuration = (3 + Math.random() * 3) + 's';
-    pink.style.animationDelay = Math.random() * 4 + 's';
-    cContainer.appendChild(pink);
+  for (var i = 0; i < 40; i++) {
+    var isBlue = i % 2 === 0;
+    var piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    var size = 5 + Math.random() * 8;
+    var shades = isBlue ? blueShades : pinkShades;
+    piece.style.background = shades[Math.floor(Math.random() * shades.length)];
+    piece.style.width = size + 'px';
+    piece.style.height = size + 'px';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.left = cx + 'px';
+    piece.style.top = cy + 'px';
+
+    var angle = Math.random() * 360;
+    var distance = 150 + Math.random() * 250;
+    var tx = Math.cos(angle * Math.PI / 180) * distance;
+    var ty = Math.sin(angle * Math.PI / 180) * distance;
+    var duration = 1.5 + Math.random() * 2;
+    var rotation = 360 + Math.random() * 360;
+
+    piece.animate([
+      { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
+      { transform: 'translate(' + tx + 'px, ' + ty + 'px) rotate(' + rotation + 'deg) scale(0.3)', opacity: 0 }
+    ], {
+      duration: duration * 1000,
+      easing: 'cubic-bezier(0, 0.5, 0.5, 1)',
+      delay: Math.random() * 2000,
+      fill: 'forwards'
+    });
+
+    cContainer.appendChild(piece);
   }
+
+  setTimeout(function() { cContainer.innerHTML = ''; }, 5000);
 }
 
-// --- REVEAL CONFETTI (heavy answer color, top-down only) ---
+// --- REVEAL CONFETTI (firecracker burst from behind card) ---
 function launchRevealConfetti(accentColor) {
   var cContainer = document.getElementById('confetti');
   cContainer.innerHTML = '';
@@ -257,39 +269,76 @@ function launchRevealConfetti(accentColor) {
   var mainColors = isBlue
     ? ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb']
     : ['#ec4899', '#f472b6', '#f9a8d4', '#fbcfe8', '#db2777'];
-  var accentColors = ['#fbbf24', '#a78bfa', '#34d399'];
-  var allColors = mainColors.concat(mainColors).concat(accentColors);
+  var extraColors = ['#fbbf24', '#a78bfa', '#34d399'];
+  var allColors = mainColors.concat(mainColors).concat(extraColors);
 
-  for (var i = 0; i < 100; i++) {
+  var cx = window.innerWidth / 2;
+  var cy = window.innerHeight / 2;
+
+  // First burst - big explosion
+  for (var i = 0; i < 80; i++) {
     var piece = document.createElement('div');
     piece.className = 'confetti-piece';
-    var size = 5 + Math.random() * 10;
-    piece.style.left = Math.random() * 100 + '%';
+    var size = 6 + Math.random() * 12;
     piece.style.background = allColors[Math.floor(Math.random() * allColors.length)];
-    piece.style.animationDuration = (2.5 + Math.random() * 2.5) + 's';
-    piece.style.animationDelay = Math.random() * 1 + 's';
-    piece.style.borderRadius = Math.random() > 0.4 ? '50%' : '2px';
     piece.style.width = size + 'px';
-    piece.style.height = size + 'px';
+    piece.style.height = Math.random() > 0.3 ? size + 'px' : (size * 0.4) + 'px';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.left = cx + 'px';
+    piece.style.top = cy + 'px';
+
+    var angle = Math.random() * 360;
+    var distance = 200 + Math.random() * 400;
+    var tx = Math.cos(angle * Math.PI / 180) * distance;
+    var ty = Math.sin(angle * Math.PI / 180) * distance + (Math.random() * 100);
+    var duration = 2 + Math.random() * 1.5;
+    var rotation = 720 + Math.random() * 360;
+
+    piece.animate([
+      { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
+      { transform: 'translate(' + tx + 'px, ' + ty + 'px) rotate(' + rotation + 'deg) scale(0.2)', opacity: 0 }
+    ], {
+      duration: duration * 1000,
+      easing: 'cubic-bezier(0.15, 0.8, 0.3, 1)',
+      delay: Math.random() * 300,
+      fill: 'forwards'
+    });
+
     cContainer.appendChild(piece);
   }
 
-  // Second wave
+  // Second burst - delayed smaller pop
   setTimeout(function() {
     for (var i = 0; i < 50; i++) {
       var piece = document.createElement('div');
       piece.className = 'confetti-piece';
-      var size = 5 + Math.random() * 8;
-      piece.style.left = Math.random() * 100 + '%';
+      var size = 4 + Math.random() * 8;
       piece.style.background = allColors[Math.floor(Math.random() * allColors.length)];
       piece.style.width = size + 'px';
       piece.style.height = size + 'px';
       piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-      piece.style.animationDuration = (2 + Math.random() * 2) + 's';
-      piece.style.animationDelay = '0s';
+      piece.style.left = cx + 'px';
+      piece.style.top = cy + 'px';
+
+      var angle = Math.random() * 360;
+      var distance = 100 + Math.random() * 300;
+      var tx = Math.cos(angle * Math.PI / 180) * distance;
+      var ty = Math.sin(angle * Math.PI / 180) * distance + 50;
+      var duration = 1.5 + Math.random() * 1.5;
+      var rotation = 360 + Math.random() * 360;
+
+      piece.animate([
+        { transform: 'translate(0, 0) rotate(0deg) scale(1)', opacity: 1 },
+        { transform: 'translate(' + tx + 'px, ' + ty + 'px) rotate(' + rotation + 'deg) scale(0.1)', opacity: 0 }
+      ], {
+        duration: duration * 1000,
+        easing: 'cubic-bezier(0.15, 0.8, 0.3, 1)',
+        fill: 'forwards'
+      });
+
       cContainer.appendChild(piece);
     }
-  }, 800);
+  }, 500);
 
-  setTimeout(function() { cContainer.innerHTML = ''; }, 7000);
+  setTimeout(function() { cContainer.innerHTML = ''; }, 5000);
 }
