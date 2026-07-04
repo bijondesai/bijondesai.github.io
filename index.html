@@ -50,12 +50,28 @@
     .btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
     .btn.selected { transform: scale(1.1); box-shadow: 0 6px 24px rgba(0,0,0,0.15); }
 
-    .timer { font-size: 3.5rem; font-weight: 700; color: #333; margin: 20px 0; display: none; }
+    .timer {
+      font-size: 4rem; font-weight: 700; color: #333; margin: 20px 0; display: none;
+      animation: pulse 1s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
     .message { font-size: 1rem; color: #666; min-height: 24px; margin-bottom: 8px; }
 
     .reveal {
-      font-size: 2.2rem; font-weight: 700; display: none;
+      font-size: 2.4rem; font-weight: 700; display: none;
       animation: pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .reveal .answer-text {
+      display: inline-block;
+      text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+      animation: glow 1.5s ease-in-out infinite alternate;
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 10px currentColor, 0 0 20px currentColor; }
+      to { text-shadow: 0 0 20px currentColor, 0 0 40px currentColor, 0 0 60px currentColor; }
     }
     @keyframes pop {
       0% { transform: scale(0); opacity: 0; }
@@ -65,9 +81,7 @@
 
     .share-section { margin-top: 28px; display: none; }
     .share-section h2 { font-size: 1rem; color: #555; margin-bottom: 16px; font-weight: 600; }
-    .link-box {
-      display: flex; gap: 8px; margin-bottom: 20px; align-items: stretch;
-    }
+    .link-box { display: flex; gap: 8px; margin-bottom: 20px; align-items: stretch; }
     .link-input {
       flex: 1; padding: 12px 14px; border: 2px solid #e5e7eb; border-radius: 10px;
       font-size: 0.85rem; font-family: 'Poppins', sans-serif; color: #333;
@@ -98,23 +112,44 @@
     .confetti-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; overflow: hidden; }
     .confetti-piece {
       position: absolute; top: -20px;
-      width: 10px; height: 10px; border-radius: 2px;
-      animation: confetti-fall 3s ease-out forwards;
+      animation: confetti-fall linear forwards;
     }
     @keyframes confetti-fall {
-      0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+      0% { transform: translateY(-10vh) rotate(0deg) scale(1); opacity: 1; }
+      80% { opacity: 1; }
+      100% { transform: translateY(105vh) rotate(720deg) scale(0.5); opacity: 0; }
+    }
+
+    .particles {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 0; overflow: hidden;
+    }
+    .particle {
+      position: absolute; border-radius: 50%; opacity: 0.3;
+      animation: float linear infinite;
+    }
+    @keyframes float {
+      0% { transform: translateY(100vh) rotate(0deg); }
+      100% { transform: translateY(-20vh) rotate(360deg); }
     }
 
     .creator-note { font-size: 0.85rem; color: #aaa; margin-top: 12px; font-style: italic; }
 
     .page { display: none; }
     .page.active { display: block; }
+
+    .guesser-emoji { font-size: 3rem; margin-bottom: 12px; animation: bounce 2s ease infinite; }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
   </style>
 </head>
 <body>
+  <div class="particles" id="particles"></div>
+
   <div class="card">
-    <!-- PAGE 1: Creator Mode (no hash in URL) -->
+    <!-- PAGE 1: Creator Mode -->
     <div class="page" id="creator-page">
       <h1>Gender Reveal</h1>
       <p class="subtitle">Pick the answer, then share the link with friends!</p>
@@ -150,8 +185,9 @@
       </div>
     </div>
 
-    <!-- PAGE 2: Guesser Mode (hash in URL) -->
+    <!-- PAGE 2: Guesser Mode -->
     <div class="page" id="guesser-page">
+      <div class="guesser-emoji">👶</div>
       <h1>Guess the Gender!</h1>
       <p class="subtitle">Someone has a surprise for you...</p>
       <div class="buttons">
@@ -159,7 +195,7 @@
         <button class="btn btn-girl" id="btn-girl" onclick="makeGuess('Girl')">Girl</button>
       </div>
       <div class="message" id="message"></div>
-      <div class="timer" id="timer">10</div>
+      <div class="timer" id="timer">5</div>
       <div class="reveal" id="reveal"></div>
     </div>
   </div>
@@ -167,15 +203,11 @@
   <div class="confetti-container" id="confetti"></div>
 
   <script>
-    function encodeAnswer(answer) {
-      return btoa(answer + '|genderreveal');
-    }
+    function encodeAnswer(answer) { return btoa(answer + '|genderreveal'); }
     function decodeAnswer(hash) {
       try {
         const decoded = atob(hash);
-        if (decoded.endsWith('|genderreveal')) {
-          return decoded.replace('|genderreveal', '');
-        }
+        if (decoded.endsWith('|genderreveal')) return decoded.replace('|genderreveal', '');
       } catch(e) {}
       return null;
     }
@@ -185,8 +217,25 @@
 
     if (hiddenAnswer) {
       document.getElementById('guesser-page').classList.add('active');
+      createParticles();
     } else {
       document.getElementById('creator-page').classList.add('active');
+    }
+
+    function createParticles() {
+      const container = document.getElementById('particles');
+      const colors = ['#fbbf24', '#f472b6', '#60a5fa', '#a78bfa', '#34d399'];
+      for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.width = (4 + Math.random() * 8) + 'px';
+        p.style.height = p.style.width;
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.animationDuration = (8 + Math.random() * 12) + 's';
+        p.style.animationDelay = Math.random() * 10 + 's';
+        container.appendChild(p);
+      }
     }
 
     // --- CREATOR MODE ---
@@ -195,14 +244,11 @@
     function createReveal(gender) {
       const boys = document.querySelector('#creator-page .btn-boy');
       const girls = document.querySelector('#creator-page .btn-girl');
-
       if (gender === 'Boy') { boys.classList.add('selected'); girls.disabled = true; }
       else { girls.classList.add('selected'); boys.disabled = true; }
-
       const encoded = encodeAnswer(gender);
       const baseUrl = window.location.href.split('#')[0];
       generatedLink = baseUrl + '#' + encoded;
-
       document.getElementById('share-link').value = generatedLink;
       document.getElementById('share-section').style.display = 'block';
     }
@@ -217,27 +263,15 @@
     }
 
     const shareText = "Can you guess the gender? Make your prediction here:";
-
-    function shareWhatsApp() {
-      window.open(`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + generatedLink)}`, '_blank');
-    }
-    function shareFacebook() {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(generatedLink)}&quote=${encodeURIComponent(shareText)}`, '_blank');
-    }
-    function shareX() {
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(generatedLink)}`, '_blank');
-    }
-    function shareInstagram() {
-      navigator.clipboard.writeText(generatedLink).then(() => {
-        alert('Link copied! Paste it in your Instagram story or DM.');
-      });
-    }
+    function shareWhatsApp() { window.open('https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + generatedLink), '_blank'); }
+    function shareFacebook() { window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(generatedLink) + '&quote=' + encodeURIComponent(shareText), '_blank'); }
+    function shareX() { window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(generatedLink), '_blank'); }
+    function shareInstagram() { navigator.clipboard.writeText(generatedLink).then(() => { alert('Link copied! Paste it in your Instagram story or DM.'); }); }
 
     // --- GUESSER MODE ---
     function makeGuess(choice) {
       const boyBtn = document.getElementById('btn-boy');
       const girlBtn = document.getElementById('btn-girl');
-
       if (choice === 'Boy') { boyBtn.classList.add('selected'); girlBtn.disabled = true; }
       else { girlBtn.classList.add('selected'); boyBtn.disabled = true; }
       boyBtn.onclick = null; girlBtn.onclick = null;
@@ -245,7 +279,7 @@
       document.getElementById('message').textContent = 'You picked ' + choice + '! Revealing in...';
       document.getElementById('timer').style.display = 'block';
 
-      let seconds = 10;
+      let seconds = 5;
       document.getElementById('timer').textContent = seconds;
 
       const countdown = setInterval(() => {
@@ -262,8 +296,8 @@
 
           document.getElementById('reveal').style.display = 'block';
           document.getElementById('reveal').innerHTML =
-            '<span style="color:' + color + '">It\'s a ' + answer + '!</span><br>' +
-            '<span style="font-size:1rem;color:' + (isCorrect ? '#22c55e' : '#ef4444') + ';margin-top:8px;display:block">' +
+            '<span class="answer-text" style="color:' + color + '">It\'s a ' + answer + '!</span><br>' +
+            '<span style="font-size:1rem;color:' + (isCorrect ? '#22c55e' : '#ef4444') + ';margin-top:12px;display:block">' +
             (isCorrect ? 'You guessed right!' : 'Better luck next time!') + '</span>';
 
           launchConfetti(color);
@@ -273,20 +307,40 @@
 
     function launchConfetti(accentColor) {
       const container = document.getElementById('confetti');
-      const colors = [accentColor, '#fbbf24', '#a78bfa', '#34d399', '#fb7185', '#60a5fa'];
-      for (let i = 0; i < 60; i++) {
+      const colors = [accentColor, '#fbbf24', '#a78bfa', '#34d399', '#fb7185', '#60a5fa', '#f472b6', '#818cf8'];
+      const shapes = ['circle', 'square', 'strip'];
+
+      for (let i = 0; i < 100; i++) {
         const piece = document.createElement('div');
         piece.className = 'confetti-piece';
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        const size = 6 + Math.random() * 10;
         piece.style.left = Math.random() * 100 + '%';
         piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-        piece.style.animationDelay = Math.random() * 1.5 + 's';
-        piece.style.animationDuration = (2 + Math.random() * 2) + 's';
-        piece.style.width = (6 + Math.random() * 8) + 'px';
-        piece.style.height = (6 + Math.random() * 8) + 'px';
-        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        piece.style.animationDuration = (2.5 + Math.random() * 2.5) + 's';
+        piece.style.animationDelay = Math.random() * 1 + 's';
+        if (shape === 'circle') { piece.style.width = size+'px'; piece.style.height = size+'px'; piece.style.borderRadius = '50%'; }
+        else if (shape === 'strip') { piece.style.width = (size*0.4)+'px'; piece.style.height = (size*1.5)+'px'; piece.style.borderRadius = '2px'; }
+        else { piece.style.width = size+'px'; piece.style.height = size+'px'; piece.style.borderRadius = '2px'; }
         container.appendChild(piece);
       }
-      setTimeout(() => { container.innerHTML = ''; }, 4000);
+
+      setTimeout(() => {
+        for (let i = 0; i < 50; i++) {
+          const piece = document.createElement('div');
+          piece.className = 'confetti-piece';
+          const size = 5 + Math.random() * 8;
+          piece.style.left = Math.random() * 100 + '%';
+          piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+          piece.style.width = size+'px'; piece.style.height = size+'px';
+          piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+          piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+          piece.style.animationDelay = '0s';
+          container.appendChild(piece);
+        }
+      }, 800);
+
+      setTimeout(() => { container.innerHTML = ''; }, 6000);
     }
   </script>
 </body>
