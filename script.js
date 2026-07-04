@@ -167,4 +167,126 @@ function makeGuess(choice) {
   // Record vote
   recordVote(choice);
 
-  document
+  document.getElementById('message').textContent = 'You picked ' + choice + '! Revealing in...';
+  document.getElementById('timer').style.display = 'block';
+
+  // Pre-reveal confetti: equal blue and pink
+  launchPreRevealConfetti();
+
+  let seconds = 5;
+  document.getElementById('timer').textContent = seconds;
+
+  const countdown = setInterval(async () => {
+    seconds--;
+    document.getElementById('timer').textContent = seconds;
+    if (seconds <= 0) {
+      clearInterval(countdown);
+      document.getElementById('timer').style.display = 'none';
+      document.getElementById('message').style.display = 'none';
+
+      const answer = hiddenAnswer;
+      const isCorrect = choice === answer;
+      const answerClass = answer === 'Boy' ? '' : 'girl-answer';
+
+      // Change emoji to match answer
+      document.getElementById('guesser-emoji').textContent = answer === 'Boy' ? '👦' : '👧';
+
+      // Get vote counts
+      const votes = await getVotes();
+      const sameGuessCount = choice.toLowerCase() === 'boy' ? votes.boy : votes.girl;
+      const othersCount = Math.max(0, sameGuessCount - 1);
+
+      let funMessage = '';
+      if (isCorrect) {
+        if (othersCount === 0) funMessage = "You're the first to crack it! 🏆";
+        else funMessage = "Great minds think alike — " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " got it too! 🎉";
+      } else {
+        if (othersCount === 0) funMessage = "First one to get tricked — brave pioneer! 😄";
+        else funMessage = "Don't worry, " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " fell for it too! 😄";
+      }
+
+      document.getElementById('reveal').style.display = 'block';
+      document.getElementById('reveal').innerHTML =
+        '<span class="answer-text ' + answerClass + '">It\'s a ' + answer + '!</span><br>' +
+        '<span style="font-size:0.9rem;color:#666;margin-top:14px;display:block;font-weight:400;">' + funMessage + '</span>';
+
+      // Post-reveal: heavy confetti in the answer's color
+      launchRevealConfetti(answer === 'Boy' ? '#3b82f6' : '#ec4899');
+    }
+  }, 1000);
+}
+
+// --- PRE-REVEAL CONFETTI (equal blue + pink) ---
+function launchPreRevealConfetti() {
+  const cContainer = document.getElementById('confetti');
+  const blueShades = ['#60a5fa', '#3b82f6', '#93c5fd'];
+  const pinkShades = ['#f472b6', '#ec4899', '#f9a8d4'];
+
+  for (let i = 0; i < 30; i++) {
+    const blue = document.createElement('div');
+    blue.className = 'confetti-piece';
+    const size1 = 5 + Math.random() * 8;
+    blue.style.left = Math.random() * 100 + '%';
+    blue.style.background = blueShades[Math.floor(Math.random() * blueShades.length)];
+    blue.style.width = size1 + 'px'; blue.style.height = size1 + 'px';
+    blue.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    blue.style.animationDuration = (3 + Math.random() * 3) + 's';
+    blue.style.animationDelay = Math.random() * 4 + 's';
+    cContainer.appendChild(blue);
+
+    const pink = document.createElement('div');
+    pink.className = 'confetti-piece';
+    const size2 = 5 + Math.random() * 8;
+    pink.style.left = Math.random() * 100 + '%';
+    pink.style.background = pinkShades[Math.floor(Math.random() * pinkShades.length)];
+    pink.style.width = size2 + 'px'; pink.style.height = size2 + 'px';
+    pink.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    pink.style.animationDuration = (3 + Math.random() * 3) + 's';
+    pink.style.animationDelay = Math.random() * 4 + 's';
+    cContainer.appendChild(pink);
+  }
+}
+
+// --- REVEAL CONFETTI (heavy answer color, top-down only) ---
+function launchRevealConfetti(accentColor) {
+  const cContainer = document.getElementById('confetti');
+  cContainer.innerHTML = '';
+
+  const isBlue = accentColor === '#3b82f6';
+  const mainColors = isBlue
+    ? ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb']
+    : ['#ec4899', '#f472b6', '#f9a8d4', '#fbcfe8', '#db2777'];
+  const accentColors = ['#fbbf24', '#a78bfa', '#34d399'];
+  const allColors = [...mainColors, ...mainColors, ...accentColors];
+
+  for (let i = 0; i < 100; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const size = 5 + Math.random() * 10;
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.background = allColors[Math.floor(Math.random() * allColors.length)];
+    piece.style.animationDuration = (2.5 + Math.random() * 2.5) + 's';
+    piece.style.animationDelay = Math.random() * 1 + 's';
+    piece.style.borderRadius = Math.random() > 0.4 ? '50%' : '2px';
+    piece.style.width = size + 'px'; piece.style.height = size + 'px';
+    cContainer.appendChild(piece);
+  }
+
+  // Second wave
+  setTimeout(() => {
+    for (let i = 0; i < 50; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      const size = 5 + Math.random() * 8;
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.background = allColors[Math.floor(Math.random() * allColors.length)];
+      piece.style.width = size + 'px'; piece.style.height = size + 'px';
+      piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+      piece.style.animationDelay = '0s';
+      cContainer.appendChild(piece);
+    }
+  }, 800);
+
+  setTimeout(() => { cContainer.innerHTML = ''; }, 7000);
+}
