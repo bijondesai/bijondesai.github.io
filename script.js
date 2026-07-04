@@ -32,6 +32,29 @@ if (isStatsMode) {
   document.getElementById('creator-page').classList.add('active');
 }
 
+// --- Helper: get random point on card edge ---
+function getCardEdgePoint() {
+  var card = document.querySelector('.card');
+  var rect = card.getBoundingClientRect();
+  var edge = Math.floor(Math.random() * 4);
+  var x, y;
+
+  if (edge === 0) {
+    x = rect.left + Math.random() * rect.width;
+    y = rect.top;
+  } else if (edge === 1) {
+    x = rect.right;
+    y = rect.top + Math.random() * rect.height;
+  } else if (edge === 2) {
+    x = rect.left + Math.random() * rect.width;
+    y = rect.bottom;
+  } else {
+    x = rect.left;
+    y = rect.top + Math.random() * rect.height;
+  }
+  return { x: x, y: y };
+}
+
 // --- Firebase Helpers ---
 async function recordVote(guess) {
   if (isTestMode) return;
@@ -139,7 +162,7 @@ function copyLink() {
   });
 }
 
-var shareText = "Can you guess Baby Desai\'s gender? Make your prediction here:";
+var shareText = "Can you guess Baby Desai's gender? Make your prediction here:";
 
 function shareWhatsApp() {
   window.open('https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + generatedLink), '_blank');
@@ -198,11 +221,11 @@ function makeGuess(choice) {
 
       var funMessage = '';
       if (isCorrect) {
-        if (othersCount === 0) funMessage = "You are the first to crack it! \uD83C\uDFC6";
+        if (othersCount === 0) funMessage = "You're the first to crack it! \uD83C\uDFC6";
         else funMessage = "Great minds think alike \u2014 " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " got it too! \uD83C\uDF89";
       } else {
         if (othersCount === 0) funMessage = "First one to get tricked \u2014 brave pioneer! \uD83D\uDE04";
-        else funMessage = "Don\'t worry, " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " fell for it too! \uD83D\uDE04";
+        else funMessage = "Don't worry, " + othersCount + " other" + (othersCount === 1 ? '' : 's') + " fell for it too! \uD83D\uDE04";
       }
 
       document.getElementById('reveal').style.display = 'block';
@@ -215,14 +238,11 @@ function makeGuess(choice) {
   }, 1000);
 }
 
-// --- PRE-REVEAL CONFETTI (equal blue + pink, gentle firecracker) ---
+// --- PRE-REVEAL CONFETTI (equal blue + pink, from card edges) ---
 function launchPreRevealConfetti() {
   var cContainer = document.getElementById('confetti');
   var blueShades = ['#60a5fa', '#3b82f6', '#93c5fd'];
   var pinkShades = ['#f472b6', '#ec4899', '#f9a8d4'];
-
-  var cx = window.innerWidth / 2;
-  var cy = window.innerHeight / 2;
 
   for (var i = 0; i < 40; i++) {
     var isBlue = i % 2 === 0;
@@ -234,11 +254,13 @@ function launchPreRevealConfetti() {
     piece.style.width = size + 'px';
     piece.style.height = size + 'px';
     piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-    piece.style.left = cx + 'px';
-    piece.style.top = cy + 'px';
+
+    var start = getCardEdgePoint();
+    piece.style.left = start.x + 'px';
+    piece.style.top = start.y + 'px';
 
     var angle = Math.random() * 360;
-    var distance = 150 + Math.random() * 250;
+    var distance = 100 + Math.random() * 200;
     var tx = Math.cos(angle * Math.PI / 180) * distance;
     var ty = Math.sin(angle * Math.PI / 180) * distance;
     var duration = 1.5 + Math.random() * 2;
@@ -260,7 +282,7 @@ function launchPreRevealConfetti() {
   setTimeout(function() { cContainer.innerHTML = ''; }, 5000);
 }
 
-// --- REVEAL CONFETTI (firecracker burst from behind card) ---
+// --- REVEAL CONFETTI (firecracker from card edges) ---
 function launchRevealConfetti(accentColor) {
   var cContainer = document.getElementById('confetti');
   cContainer.innerHTML = '';
@@ -272,9 +294,6 @@ function launchRevealConfetti(accentColor) {
   var extraColors = ['#fbbf24', '#a78bfa', '#34d399'];
   var allColors = mainColors.concat(mainColors).concat(extraColors);
 
-  var cx = window.innerWidth / 2;
-  var cy = window.innerHeight / 2;
-
   // First burst - big explosion
   for (var i = 0; i < 80; i++) {
     var piece = document.createElement('div');
@@ -284,13 +303,15 @@ function launchRevealConfetti(accentColor) {
     piece.style.width = size + 'px';
     piece.style.height = Math.random() > 0.3 ? size + 'px' : (size * 0.4) + 'px';
     piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-    piece.style.left = cx + 'px';
-    piece.style.top = cy + 'px';
+
+    var start = getCardEdgePoint();
+    piece.style.left = start.x + 'px';
+    piece.style.top = start.y + 'px';
 
     var angle = Math.random() * 360;
-    var distance = 200 + Math.random() * 400;
+    var distance = 150 + Math.random() * 350;
     var tx = Math.cos(angle * Math.PI / 180) * distance;
-    var ty = Math.sin(angle * Math.PI / 180) * distance + (Math.random() * 100);
+    var ty = Math.sin(angle * Math.PI / 180) * distance + (Math.random() * 80);
     var duration = 2 + Math.random() * 1.5;
     var rotation = 720 + Math.random() * 360;
 
@@ -317,11 +338,13 @@ function launchRevealConfetti(accentColor) {
       piece.style.width = size + 'px';
       piece.style.height = size + 'px';
       piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-      piece.style.left = cx + 'px';
-      piece.style.top = cy + 'px';
+
+      var start = getCardEdgePoint();
+      piece.style.left = start.x + 'px';
+      piece.style.top = start.y + 'px';
 
       var angle = Math.random() * 360;
-      var distance = 100 + Math.random() * 300;
+      var distance = 100 + Math.random() * 250;
       var tx = Math.cos(angle * Math.PI / 180) * distance;
       var ty = Math.sin(angle * Math.PI / 180) * distance + 50;
       var duration = 1.5 + Math.random() * 1.5;
